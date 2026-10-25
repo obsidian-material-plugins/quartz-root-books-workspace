@@ -17,8 +17,8 @@ export function panelValues(value: unknown): { icon: unknown; accent: unknown } 
     return { icon: parsed.icon, accent: quoted ? quoted[2] : accent }
   }
 
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined
   try {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined
     const icon = Object.getOwnPropertyDescriptor(value, "icon")
     const accent = Object.getOwnPropertyDescriptor(value, "accent")
     return {

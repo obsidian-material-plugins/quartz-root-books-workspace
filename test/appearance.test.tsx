@@ -32,6 +32,12 @@ describe.each(layouts)("portable appearance contract (%s)", (layout) => {
     expect(html).toContain("--rip-panel-accent: #1a2b3c")
   })
 
+  it("falls back when a panel proxy has been revoked", () => {
+    const { proxy, revoke } = Proxy.revocable({}, {})
+    revoke()
+    expect(renderAppearance(proxy, { layout })).toContain('data-rip-icon="lucide:book-open"')
+  })
+
   it("uses the portable Lucide fallback and a theme-neutral accent", () => {
     const html = renderPanels(bookFiles(), { layout })
 

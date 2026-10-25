@@ -2299,8 +2299,8 @@ function panelValues(value) {
     const quoted = /^(["'])(#[0-9a-fA-F]{6})\1$/.exec(accent);
     return { icon: parsed.icon, accent: quoted ? quoted[2] : accent };
   }
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return void 0;
   try {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) return void 0;
     const icon = Object.getOwnPropertyDescriptor(value, "icon");
     const accent = Object.getOwnPropertyDescriptor(value, "accent");
     return {

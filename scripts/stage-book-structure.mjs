@@ -72,7 +72,8 @@ function makeRenames(files, folders, convention) {
     const source = existing.get(from.toLowerCase())
     if (!source || source === to) return
     const target = to.toLowerCase()
-    if (existing.has(target) || desired.has(target)) {
+    const occupant = existing.get(target)
+    if ((occupant && occupant !== source) || desired.has(target)) {
       collisions.add(to)
       return
     }
@@ -95,50 +96,77 @@ function splitFragment(value) {
   return index < 0 ? [value, ""] : [value.slice(0, index), value.slice(index)]
 }
 
-function linkRewriter(renames) {
+function linkRewriter(renames, files) {
+  const existing = new Map(
+    files.filter((file) => file.endsWith(".md")).map((file) => [file.toLowerCase(), file]),
+  )
   const basenameIndex = new Map()
-  for (const oldPath of renames.keys()) {
-    const stem = path.posix.basename(oldPath, ".md")
-    basenameIndex.set(stem, [...(basenameIndex.get(stem) ?? []), oldPath])
+  for (const file of existing.values()) {
+    const stem = path.posix.basename(file, ".md").toLowerCase()
+    basenameIndex.set(stem, [...(basenameIndex.get(stem) ?? []), file])
   }
-  function rewriteWiki(inner) {
+  function existingFile(address) {
+    const normalized = path.posix.normalize(address.replace(/^\//, ""))
+    if (normalized === ".." || normalized.startsWith("../")) return undefined
+    const candidate = normalized.endsWith(".md") ? normalized : `${normalized}.md`
+    return existing.get(candidate.toLowerCase())
+  }
+  function relativeAddress(current, mapped, keepDot) {
+    const relative = path.posix.relative(path.posix.dirname(current), mapped)
+    return keepDot && !relative.startsWith("../") ? `./${relative}` : relative
+  }
+  function rewriteWiki(inner, current) {
     const aliasAt = inner.indexOf("|")
     const address = aliasAt < 0 ? inner : inner.slice(0, aliasAt)
     const alias = aliasAt < 0 ? "" : inner.slice(aliasAt)
     const [base, fragment] = splitFragment(address)
     if (!base) return inner
-    const candidate = base.endsWith(".md") ? base : `${base}.md`
-    let from = renames.has(candidate) ? candidate : undefined
-    if (!from && !base.includes("/")) {
-      const matches = basenameIndex.get(base.replace(/\.md$/, "")) ?? []
-      if (matches.length > 1)
+    const explicitRelative = /^\.{1,2}\//.test(base)
+    let from
+    if (explicitRelative) {
+      from = existingFile(path.posix.join(path.posix.dirname(current), base))
+    } else if (base.startsWith("/") || base.includes("/")) {
+      from = existingFile(base)
+    } else {
+      const matches = basenameIndex.get(path.posix.basename(base, ".md").toLowerCase()) ?? []
+      if (matches.length > 1 && matches.some((file) => renames.has(file)))
         throw new Error(`Ambiguous settings-note link [[${inner}]]: ${matches.join(", ")}`)
       from = matches[0]
     }
     const mapped = from ? renames.get(from) : undefined
-    return mapped ? `${mapped.slice(0, -3)}${fragment}${alias}` : inner
+    if (!mapped) return inner
+    const stem = mapped.slice(0, -3)
+    const target = explicitRelative
+      ? relativeAddress(current, stem, base.startsWith("./"))
+      : base.startsWith("/")
+        ? `/${stem}`
+        : base.includes("/") || from.includes("/")
+          ? stem
+          : path.posix.basename(stem)
+    return `${target}${fragment}${alias}`
   }
-  function rewriteMarkdown(target, current) {
+  function rewriteMarkdown(address, current) {
+    const angled = address.startsWith("<") && address.endsWith(">")
+    const target = angled ? address.slice(1, -1) : address
     const [base, fragment] = splitFragment(target)
-    if (!base || base.startsWith("#") || /^[a-z][\w+.-]*:/i.test(base)) return target
+    if (!base || base.startsWith("#") || /^[a-z][\w+.-]*:/i.test(base)) return address
     let decoded
     try {
       decoded = decodeURIComponent(base)
     } catch {
-      return target
+      return address
     }
     const absolute = decoded.startsWith("/")
-    const relative = path.posix.normalize(path.posix.join(path.posix.dirname(current), decoded))
-    const root = path.posix.normalize(decoded.replace(/^\//, ""))
-    const choices = absolute ? [root] : [...new Set([relative, root])]
-    const matches = choices
-      .flatMap((choice) => [choice, `${choice}.md`])
-      .filter((choice) => renames.has(choice))
-    if (new Set(matches).size > 1)
-      throw new Error(`Ambiguous settings-note link ${target} in ${current}`)
-    const mapped = renames.get(matches[0])
-    if (!mapped) return target
-    return `${absolute ? "/" : ""}${encodeURI(mapped)}${fragment}`
+    const from = existingFile(
+      absolute ? decoded : path.posix.join(path.posix.dirname(current), decoded),
+    )
+    const mapped = from ? renames.get(from) : undefined
+    if (!mapped) return address
+    const rewritten = absolute
+      ? `/${mapped}`
+      : relativeAddress(current, mapped, decoded.startsWith("./"))
+    const result = `${encodeURI(rewritten)}${fragment}`
+    return angled ? `<${result}>` : result
   }
   return function rewrite(text, current) {
     let fence = null
@@ -146,22 +174,35 @@ function linkRewriter(renames) {
       .split(/(\r?\n)/)
       .map((line) => {
         if (line === "\n" || line === "\r\n") return line
-        const marker = /^\s*(`{3,}|~{3,})/.exec(line)?.[1]
-        if (marker) {
-          if (!fence) fence = marker[0]
-          else if (fence === marker[0]) fence = null
+        const fenceLine = /^\s{0,3}(`{3,}|~{3,})(.*)$/.exec(line)
+        if (fenceLine) {
+          const marker = fenceLine[1]
+          if (!fence) fence = { character: marker[0], length: marker.length }
+          else if (
+            fence.character === marker[0] &&
+            marker.length >= fence.length &&
+            /^\s*$/.test(fenceLine[2])
+          )
+            fence = null
           return line
         }
         if (fence) return line
-        return line
+        const rewritten = line
           .split(/(`+[^`]*`+)/g)
           .map((part) => {
             if (part.startsWith("`") && part.endsWith("`")) return part
             return part
-              .replace(/\[\[([^\]]+)\]\]/g, (_, inner) => `[[${rewriteWiki(inner)}]]`)
-              .replace(/\]\(([^\s)]+)\)/g, (_, target) => `](${rewriteMarkdown(target, current)})`)
+              .replace(/\[\[([^\]]+)\]\]/g, (_, inner) => `[[${rewriteWiki(inner, current)}]]`)
+              .replace(
+                /(\]\(\s*)(<[^>\r\n]+>|[^\s)]+)(?=(?:\s+(?:"[^"\r\n]*"|'[^'\r\n]*'|\([^()\r\n]*\)))?\s*\))/g,
+                (_, opening, target) => `${opening}${rewriteMarkdown(target, current)}`,
+              )
           })
           .join("")
+        return rewritten.replace(
+          /^(\s{0,3}\[[^\]]+\]:\s*)(<[^>\r\n]+>|[^\s]+)/,
+          (_, opening, target) => `${opening}${rewriteMarkdown(target, current)}`,
+        )
       })
       .join("")
   }
@@ -188,7 +229,7 @@ export async function stageBookStructure(sourceArg, destinationArg) {
   const convention = await manifestFor(source)
   const { files, folders } = await inventory(source)
   const renames = makeRenames(files, folders, convention)
-  const rewrite = linkRewriter(renames)
+  const rewrite = linkRewriter(renames, files)
   const markdown = new Map()
   for (const file of files.filter((name) => name.endsWith(".md"))) {
     const original = await fs.readFile(path.join(source, ...file.split("/")), "utf8")
