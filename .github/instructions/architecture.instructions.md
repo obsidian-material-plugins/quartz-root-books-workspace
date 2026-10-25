@@ -232,9 +232,10 @@ Normalize public options defensively because direct TypeScript calls bypass mani
 - `defaultIcon`: only `lucide:<lowercase-kebab-name>`, else `lucide:book-open`; and
 - `defaultAccent`: only `theme` or direct `#rrggbb`, else `theme`.
 
-Book frontmatter shares exactly two portable values with Root Books Toolkit:
-`panel.icon` accepts only `lucide:<lowercase-kebab-name>` and `panel.accent` accepts only direct
-six-digit hexadecimal color. Do not add named registries, unprefixed built-ins, custom component
+Book frontmatter shares `book-appearance/v2` with Obsidian to quartz workspace. The
+canonical `panel: |` scalar contains `icon: lucide:<lowercase-kebab-name>` and
+`accent: "#rrggbb"` lines. Continue reading the v1 `panel` mapping during
+migration. Do not add named registries, unprefixed built-ins, custom component
 aliases, CSS variables, short hex, or alpha hex. Construct the remote SVG URL only from a validated
 Lucide name and the exact `lucide-preact` version in `package.json`; never accept an authored URL or
 arbitrary CSS value. Unknown or malformed authored icons and accents fall back once to the

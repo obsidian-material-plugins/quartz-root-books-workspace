@@ -58,17 +58,31 @@ jobs:
       # Release tags skip them and instead verify below that the tagged commit is contained in main.
       - name: Prepare configured Quartz integration host
         if: github.ref_type != 'tag'
+        id: configured_host
         run: |
           host="$RUNNER_TEMP/quartz-for-gitlab"
           git clone --depth 1 https://gitlab.utu.fi/obsidian/quartz-for-gitlab.git "$host"
           npm ci --prefix "$host"
           npm install --prefix "$host" --no-save @quartz-community/folder-page@0.1.0
+          echo "lock_hash=$(sha256sum "$host/quartz.lock.json" "$host/package-lock.json" | sha256sum | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+          echo "RIP_QUARTZ_ROOT=$host" >> "$GITHUB_ENV"
+          echo "Configured Quartz host revision: $(git -C "$host" rev-parse HEAD)"
+
+      - name: Cache configured Quartz plugin checkouts
+        if: github.ref_type != 'tag'
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/quartz-for-gitlab/.quartz/plugins
+          key: configured-quartz-plugins-${{ runner.os }}-${{ steps.configured_host.outputs.lock_hash }}
+
+      - name: Install configured Quartz plugins
+        if: github.ref_type != 'tag'
+        run: |
+          host="$RUNNER_TEMP/quartz-for-gitlab"
           (
             cd "$host"
             npx quartz plugin install --from-config
           )
-          echo "RIP_QUARTZ_ROOT=$host" >> "$GITHUB_ENV"
-          echo "Configured Quartz host revision: $(git -C "$host" rev-parse HEAD)"
 
       - name: Run configured Quartz integration
         if: github.ref_type != 'tag'

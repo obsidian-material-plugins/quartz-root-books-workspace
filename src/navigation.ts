@@ -3,6 +3,7 @@ import { isFullSlug, simplifySlug } from "@quartz-community/utils/path"
 
 import { collectBooks } from "./books"
 import { normalizeRootIndexPanelsOptions } from "./options"
+import { panelValues } from "./panel"
 import { parseCanonicalSlug } from "./slug"
 import { getNavigationSortingService, sortWithNavigationService } from "./sorting"
 
@@ -262,7 +263,7 @@ function inventoryFile(file: PluginFile): PluginFile | undefined {
     ...topLevelDates,
     frontmatter: {
       title: ownDataValue(frontmatter, "title"),
-      panel: ownDataValue(frontmatter, "panel"),
+      panel: panelValues(ownDataValue(frontmatter, "panel")),
       ...frontmatterDates,
     },
   } as PluginFile

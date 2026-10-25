@@ -9,7 +9,12 @@ const resolvedTemporaryParent = fs.realpathSync(os.tmpdir())
 
 function junction(target, destination) {
   fs.mkdirSync(path.dirname(destination), { recursive: true })
-  fs.symlinkSync(target, destination, process.platform === "win32" ? "junction" : "dir")
+  try {
+    fs.symlinkSync(target, destination, process.platform === "win32" ? "junction" : "dir")
+  } catch (error) {
+    if (error.code !== "EPERM") throw error
+    fs.cpSync(target, destination, { recursive: true })
+  }
 }
 
 try {
@@ -34,6 +39,7 @@ try {
     "dist/types.d.ts",
     "dist/components/index.js",
     "dist/components/index.d.ts",
+    "scripts/stage-book-structure.mjs",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md",
     "README.md",
@@ -90,6 +96,8 @@ try {
       const root = await import("@obsidian-material-plugins/quartz-root-books-workspace")
       const components = await import("@obsidian-material-plugins/quartz-root-books-workspace/components")
       await import("@obsidian-material-plugins/quartz-root-books-workspace/types")
+      const staging = await import("@obsidian-material-plugins/quartz-root-books-workspace/staging")
+      if (typeof staging.stageBookStructure !== "function") throw new Error("missing staging adapter")
       if (typeof root.RootIndexPanels !== "function") throw new Error("missing root component")
       if (typeof root.RootIndexPanelsPage !== "function") throw new Error("missing Page Type")
       if (typeof root.RootIndexSidebar !== "function") throw new Error("missing root sidebar")

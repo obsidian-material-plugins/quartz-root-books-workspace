@@ -221,6 +221,12 @@ inventory. The known watch limitation is pre-approved; full-build defects are no
 
 ## Command gate
 
+The configured-host CI cache includes `.quartz/plugins/` and is keyed by the
+host's Quartz and npm lockfiles. Keep the lockfile-aware install step after
+cache restore so a miss still prepares the full integration host. Before the
+cache, the 22 October 2026 PR run #308 spent about 3 minutes 45 seconds in
+host preparation, including fresh installation/build of 45 plugins.
+
 Use Prettier write mode only on changed files. Run the relevant subset while iterating, then the
 complete gate for source, manifest, dependency, or distribution changes:
 

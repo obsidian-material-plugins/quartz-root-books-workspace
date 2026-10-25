@@ -557,11 +557,25 @@ function exerciseFreshLocalInstall() {
     fs.realpathSync(pluginRoot),
     "local lock entry must resolve to the working tree",
   )
-  assert.equal(
-    fs.realpathSync(path.join(workspace, ".quartz", "plugins", PLUGIN_NAME)),
-    fs.realpathSync(pluginRoot),
-    "installed cache must point at the local working tree",
-  )
+  const installedCache = path.join(workspace, ".quartz", "plugins", PLUGIN_NAME)
+  if (fs.lstatSync(installedCache).isSymbolicLink()) {
+    assert.equal(
+      fs.realpathSync(installedCache),
+      fs.realpathSync(pluginRoot),
+      "installed cache must point at the local working tree",
+    )
+  } else {
+    assert.deepEqual(
+      readJson(path.join(installedCache, "package.json")),
+      readJson(path.join(pluginRoot, "package.json")),
+      "copied local install must retain the working tree package",
+    )
+    assert.equal(
+      fs.readFileSync(path.join(installedCache, "dist", "index.js"), "utf8"),
+      fs.readFileSync(path.join(pluginRoot, "dist", "index.js"), "utf8"),
+      "copied local install must retain the working tree build",
+    )
+  }
   assertRootSidebarLayoutConfig(false, "fresh local add")
 }
 

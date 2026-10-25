@@ -11,8 +11,8 @@
     "url": "git+https://github.com/obsidian-material-plugins/quartz-root-books-workspace.git"
   },
   "pluginContracts": {
-    "book-structure": 1,
-    "book-appearance": 1,
+    "book-structure": 2,
+    "book-appearance": 2,
     "navigation-sorting": 1
   },
   "keywords": [
@@ -30,6 +30,7 @@
   ],
   "files": [
     "dist",
+    "scripts/stage-book-structure.mjs",
     "README.md",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md",
@@ -44,6 +45,7 @@
       "types": "./dist/types.d.ts",
       "import": "./dist/types.js"
     },
+    "./staging": "./scripts/stage-book-structure.mjs",
     "./components": {
       "types": "./dist/components/index.d.ts",
       "import": "./dist/components/index.js"
