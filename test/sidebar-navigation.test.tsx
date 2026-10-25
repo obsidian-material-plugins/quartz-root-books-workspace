@@ -59,7 +59,7 @@ function fixture(): PluginFile[] {
     physicalFile("java", { title: "Java root note" }),
     physicalFile("java/index", {
       title: "Java",
-      panel: { icon: "lucide:coffee", accent: "#0f766e" },
+      panel: 'icon: lucide:coffee\naccent: "#0f766e"\n',
     }),
     physicalFile("java/topic", { title: "Java Topic" }),
     physicalFile("java/setup/index", { title: "Setup" }),

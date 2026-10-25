@@ -1,5 +1,6 @@
 import type { QuartzPluginData } from "@quartz-community/types"
 
+import { panelValues } from "./panel"
 import { parseCanonicalSlug } from "./slug"
 
 type PluginFile = QuartzPluginData & Record<string, unknown>
@@ -205,7 +206,7 @@ export function collectBooks(allFiles: PluginFile[], options: BookInventoryOptio
       docCount: book.docCount,
       tags: safeStringArray(rawTags, options.tagCount),
       date: book.date,
-      panel: ownValue(frontmatter, "panel"),
+      panel: panelValues(ownValue(frontmatter, "panel")),
     })
   }
 

@@ -26,6 +26,12 @@ const styleSource = readFileSync(
 )
 
 describe.each(layouts)("portable appearance contract (%s)", (layout) => {
+  it("reads the v2 literal block scalar", () => {
+    const html = renderPanels(bookFiles('icon: lucide:terminal\naccent: "#1A2B3C"\n'), { layout })
+    expect(html).toContain('data-rip-icon="lucide:terminal"')
+    expect(html).toContain("--rip-panel-accent: #1a2b3c")
+  })
+
   it("uses the portable Lucide fallback and a theme-neutral accent", () => {
     const html = renderPanels(bookFiles(), { layout })
 

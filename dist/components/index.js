@@ -2281,6 +2281,37 @@ function resolvePanelAccent(panelAccent, options) {
   return resolveDefaultAccent(ownDataValue2(options, "defaultAccent"));
 }
 
+// src/panel.ts
+function panelValues(value) {
+  if (typeof value === "string") {
+    const lines = value.replace(/\n$/, "").split("\n");
+    if (lines.length !== 2) return void 0;
+    const parsed = {};
+    for (const line of lines) {
+      const match = /^(icon|accent): (.+)$/.exec(line);
+      const key = match?.[1];
+      const content = match?.[2];
+      if (!key || !content || Object.hasOwn(parsed, key)) return void 0;
+      parsed[key] = content;
+    }
+    const accent = parsed.accent;
+    if (!parsed.icon || !accent) return void 0;
+    const quoted = /^(["'])(#[0-9a-fA-F]{6})\1$/.exec(accent);
+    return { icon: parsed.icon, accent: quoted ? quoted[2] : accent };
+  }
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return void 0;
+  try {
+    const icon = Object.getOwnPropertyDescriptor(value, "icon");
+    const accent = Object.getOwnPropertyDescriptor(value, "accent");
+    return {
+      icon: icon && "value" in icon ? icon.value : void 0,
+      accent: accent && "value" in accent ? accent.value : void 0
+    };
+  } catch {
+    return void 0;
+  }
+}
+
 // src/slug.ts
 function parseCanonicalSlug(value) {
   if (typeof value !== "string" || !isFullSlug(value) || value.includes("\\")) return void 0;
@@ -2441,7 +2472,7 @@ function collectBooks(allFiles, options) {
       docCount: book.docCount,
       tags: safeStringArray(rawTags, options.tagCount),
       date: book.date,
-      panel: ownValue(frontmatter, "panel")
+      panel: panelValues(ownValue(frontmatter, "panel"))
     });
   }
   if (options.sort === "docCount") {
@@ -3416,7 +3447,7 @@ function inventoryFile(file) {
     ...topLevelDates,
     frontmatter: {
       title: ownDataValue5(frontmatter, "title"),
-      panel: ownDataValue5(frontmatter, "panel"),
+      panel: panelValues(ownDataValue5(frontmatter, "panel")),
       ...frontmatterDates
     }
   };

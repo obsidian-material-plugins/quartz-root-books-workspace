@@ -66,7 +66,7 @@ unrelated history solely to change old identity metadata.
 
 ## Root Books contracts
 
-- Implement `book-structure/v1`, `book-appearance/v1`, and the optional
+- Implement `book-structure/v2`, `book-appearance/v2`, and the optional
   `navigation-sorting/v1` capability from
   `obsidian-material-plugins/plugin-contracts`.
 - Release independently from the Obsidian counterpart and sorting provider.

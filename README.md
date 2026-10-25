@@ -51,21 +51,22 @@ export default {
 
 ## Portable book appearance
 
-Root Books Workspace implements `book-structure/v1` and `book-appearance/v1`
+Root Books Workspace implements `book-structure/v2` and `book-appearance/v2`
 from the
 [plugin contract catalog](https://github.com/obsidian-material-plugins/plugin-contracts)
 alongside
-[Root Books Toolkit](https://github.com/obsidian-material-plugins/obsidian-root-books-workspace):
+[Obsidian to quartz workspace](https://github.com/obsidian-material-plugins/obsidian-to-quartz-workspace):
 
 ```yaml
-panel:
-  icon: "lucide:book-open"
+panel: |
+  icon: lucide:book-open
   accent: "#0ea5e9"
 ```
 
 - `panel.icon` accepts only `lucide:<lowercase-kebab-name>`.
 - `panel.accent` accepts only a direct six-digit hexadecimal color.
 - Invalid or missing values fall back to the configured defaults.
+- Existing v1 `panel` mappings remain readable during migration.
 
 Browse the [Lucide icon gallery](https://lucide.dev/icons/), copy the icon's
 kebab-case name, and prefix it with `lucide:`. Direct Lucide icons render as a
@@ -74,6 +75,23 @@ version-pinned CSS mask so they inherit the book accent and remain decorative.
 Named color registries, CSS variables, short/alpha hex colors, unprefixed icon
 aliases, and custom TypeScript icon registries are intentionally unsupported.
 This keeps Obsidian and Quartz metadata identical and portable.
+
+## Custom settings-note filenames
+
+The Obsidian coordinator writes `.obsidian-to-quartz-workspace.json` at the
+vault root. It names the authored global settings note and the pattern for
+optional local notes at any depth. A standalone vault without this record uses
+`index.md`. Quartz still needs canonical `index` routes, so the package ships a
+staging adapter at `@obsidian-material-plugins/quartz-root-books-workspace/staging`.
+Call `stageBookStructure(sourceContent, newStagingDirectory)` before Quartz
+scans Markdown, then build Quartz with `--directory` pointing at the staged
+copy. The adapter validates all destination collisions first, rewrites resolved
+links to the renamed notes, and leaves the source vault untouched. Remove the
+temporary copy after the build. A custom convention needs this pre-build step;
+the package cannot rename files after Quartz has already discovered content.
+
+The thesis template's build wrapper runs this adapter when the selected names
+are not `index.md`. `book-structure/v1` readers can consume the staged copy.
 
 ## Options
 
@@ -145,7 +163,7 @@ npm run verify:package
 ## Contract compatibility
 
 This package releases independently. Compatibility with other plugins follows
-its declared `book-structure/v1`, `book-appearance/v1`, and optional
+its declared `book-structure/v2`, `book-appearance/v2`, and optional
 `navigation-sorting/v1` support rather than matching package versions.
 
 ## License

@@ -137,6 +137,6 @@ authorization.
 
 Quartz Root Books Workspace releases independently. Compatibility with its
 Obsidian counterpart and optional sorting provider follows the declared
-`book-structure/v1`, `book-appearance/v1`, and `navigation-sorting/v1`
+`book-structure/v2`, `book-appearance/v2`, and `navigation-sorting/v1`
 contracts rather than matching package versions. Release tags equal the package
 version without a leading `v`.

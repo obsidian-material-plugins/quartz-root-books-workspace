@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Read `book-appearance/v2` literal panel blocks while continuing to accept
+  existing v1 panel mappings.
+- Stage `book-structure/v2` global and local settings-note filenames as
+  canonical `index.md` build inputs, with collision and link checks.
+- Cache configured Quartz plugin checkouts by the host lockfiles in CI; keep
+  the configured-host installation and integration checks.
+
 ## [0.14.1] - 2026-10-22
 
 ### Changed
